@@ -18,10 +18,20 @@ def cbc_encrypt( plaintext, key ):
     # PKCS#5 and PKCS#7
     padding = ( blockSize - len( plaintext ) % blockSize ) or blockSize
 
+    # randomly generate iv or use fixed one
     # iv = reduce( lambda x, y: x + choice( printable ), range(16), "" )
     iv = b'Y.q]j@#=#k(<=J*4'
+
     mode = AES.new( key, AES.MODE_CBC, iv )
+
+    # pad to multiples of 16
+    start = time.time()
     ciphertext = mode.encrypt( ( plaintext + padding * bytes([padding]) ) )
+    end = time.time()
+
+    print("The time used to encrypt this is given below:")
+    print( round( end - start, 5 ), "secs" )
+    print( "Rate:", round( len( content ) / ( end - start ), 5 ), "bytes/sec" )
 
     return base64.b64encode( iv + ciphertext ).decode('utf8')
 
@@ -33,26 +43,27 @@ def cbc_decrypt( ciphertext, key ):
     ciphertext = base64.b64decode( ciphertext )
     mode = AES.new( key, AES.MODE_CBC, ciphertext[:AES.block_size] )
     plaintext = mode.decrypt( ciphertext[AES.block_size:] )
+    # remove padding and return
     return plaintext[:-ord( chr( plaintext[-1] ) )]
 
 if __name__ == '__main__':
+    # randomly generate key or use fixed one
     # key = reduce( lambda x, y: x + choice( printable ), range(32), "" )
     key = b"hwWe\mS2`kvu8,z/|hvop7^~)ZUgQhHT" # 32位 AES-256
 
+    # read file
     with open( "./test.bin", "rb" ) as f:
         content = f.read()
     print( "File size is:", len( content ), "bytes" )
 
-    start = time.time()
+    # encrypt it
     ciphertext = cbc_encrypt( content, key )
-    end = time.time()
-    print("The time used to encrypt this is given below")
-    print( round( end - start, 5 ), "secs" )
-    print( "Rate:", round( len( content ) / ( end - start ), 5 ), "bytes/sec" )
 
+    # write ciphertext to file
     with open( "./test-CBC.bin.enc", "w"  ) as f:
         f.write( ciphertext )
 
+    # decrypt the above ciphertext and write it to file
     plaintext = cbc_decrypt( ciphertext, key )
     with open( "./test-CBC.bin.dec", "wb"  ) as f:
         f.write( plaintext )
